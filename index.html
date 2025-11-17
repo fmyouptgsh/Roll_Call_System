@@ -316,8 +316,8 @@
 			searchBtn.addEventListener("click", () => {
 				status.innerHTML = "搜尋中...";
 				let t = searchInput.value,
-					e = `${e}?type=search&name=${encodeURIComponent(t)}`;
-				fetch(e)
+					api = `${url}?type=search&name=${encodeURIComponent(t)}`;
+				fetch(api)
 					.then(t => t.json())
 					.then(t => {
 						let e = document.querySelector("#history table tbody");
