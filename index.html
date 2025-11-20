@@ -46,88 +46,123 @@
     </div>
 
     <script>
-        // *** 🚨 替換成您自己的 Apps Script 部署 URL 🚨 ***
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwRMXQjSZsmMUbzrfHfUyjVdIKYT2T1SK-Ug8SuBGVM1bxOsh73Z08PJ4iFoaiMxNYGvQ/exec';
+        // --- index.html (JavaScript 部分更新) ---
 
-        // 載入名單
-        async function loadStudents() {
-            const container = document.getElementById('students-container');
-            container.innerHTML = '<p>讀取 Google 試算表名單...</p>';
+// 🚨 替換成您自己的 Apps Script 部署 URL 🚨
+const WEB_APP_URL = 'YOUR_WEB_APP_URL';
 
-            try {
-                // 發送 GET 請求給 Apps Script
-                const response = await fetch(WEB_APP_URL);
-                const students = await response.json();
+// 🚨 課程清單：將您的課程名稱與對應的試算表 ID 放在這裡 🚨
+const CLASS_OPTIONS = [
+    { name: "--- 請選擇課程 ---", id: "" }, // 預設空值選項
+    { name: "114-1 進階程式設計-高二社會組", id: "1GcGA5J2yKtjlWofH543McS6zUpnzHiTN2myDTRwCdmc" },
+    { name: "114-1 進階程式設計-210", id: "11Cg36AQT2CnhRI1NTu5Zv__bJm7mI9FMNn0UiYWj7xg" }
+];
 
-                if (students.status === 'error') {
-                     container.innerHTML = `<p style="color:red;">載入名單失敗：${students.message}</p>`;
-                     return;
-                }
+// 輔助函數：取得帶有 SSID 參數的完整 URL
+function getApiUrl(ssid) {
+    return `${WEB_APP_URL}?ssid=${ssid}`;
+}
 
-                container.innerHTML = ''; // 清空載入訊息
+// 函數：填充下拉式選單
+function populateClassSelector() {
+    const selector = document.getElementById('classSelector');
+    CLASS_OPTIONS.forEach(classItem => {
+        const option = document.createElement('option');
+        option.value = classItem.id;
+        option.textContent = classItem.name;
+        selector.appendChild(option);
+    });
+}
 
-                // 為每個學生建立一個按鈕
-                students.forEach(student => {
-                    const button = document.createElement('button');
-                    button.className = 'student-button';
-                    button.textContent = student.name;
-                    button.dataset.id = student.id; 
-                    button.onclick = () => checkIn(button, student.id, student.name);
-                    container.appendChild(button);
-                    
-                    // 檢查瀏覽器會話儲存，若已點名則直接標記
-                    if (sessionStorage.getItem(`checked_${student.id}`) === 'true') {
-                        button.textContent = `${student.name} (已點名)`;
-                        button.classList.add('checked');
-                        button.disabled = true;
-                    }
-                });
+// 1. 載入名單
+async function loadStudents() {
+    // 從下拉式選單中取得選擇的試算表 ID
+    const selector = document.getElementById('classSelector');
+    const ssId = selector.value;
+    const container = document.getElementById('students-container');
+    
+    if (!ssId) {
+        alert('請先選擇一個課程！');
+        container.innerHTML = '請選擇課程後點擊載入。';
+        return;
+    }
 
-            } catch (error) {
-                container.innerHTML = `<p style="color:red;">載入名單失敗：請檢查 Apps Script 是否正確部署及授權 (錯誤: ${error.message})</p>`;
-                console.error('Fetch error:', error);
-            }
+    container.innerHTML = '<p>讀取 Google 試算表名單中...</p>';
+    
+    try {
+        const url = getApiUrl(ssId);
+        const response = await fetch(url);
+        const students = await response.json();
+
+        if (students.status === 'error') {
+             container.innerHTML = `<p style="color:red;">載入名單失敗：${students.message}</p>`;
+             return;
         }
-
-        // 處理點名 (POST 請求)
-        async function checkIn(button, studentId, studentName) {
-            if (button.classList.contains('checked')) {
-                return;
-            }
-
-            const originalText = button.textContent;
-            button.textContent = '點名中...';
-            button.disabled = true;
-
-            try {
-                // 發送 POST 請求給 Apps Script，將學號傳輸過去
-                const response = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // 必須使用 no-cors 來與 Apps Script 互動
-                    body: JSON.stringify({ id: studentId, name:studentName }) 
-                });
-
-                // 因為是 no-cors，我們無法直接讀取回應內容，但通常請求發出即視為成功
-                
-                // 更新按鈕狀態：顯示已點名
-                button.textContent = `${studentName} (已點名)`;
+        
+        container.innerHTML = '';
+        students.forEach(student => {
+            const button = document.createElement('button');
+            button.className = 'student-button';
+            button.textContent = student.name;
+            button.dataset.id = student.id; 
+            // 傳遞 ssId 給 checkIn 函數
+            button.onclick = () => checkIn(button, student.id, student.name, ssId);
+            container.appendChild(button);
+            
+            // 檢查是否已點名
+            if (sessionStorage.getItem(`checked_${ssId}_${student.id}`) === 'true') {
+                button.textContent = `${student.name} (已點名)`;
                 button.classList.add('checked');
-                // 使用 sessionStorage 記錄，避免學生在同一瀏覽器重複點名
-                sessionStorage.setItem(`checked_${studentId}`, 'true');
-
-                console.log(`Student ${studentId} checked in successfully (via no-cors).`);
-
-            } catch (error) {
-                // 失敗時恢復按鈕狀態
-                alert('點名失敗，請檢查網路或通知老師。');
-                button.textContent = originalText;
-                button.disabled = false;
-                console.error('Check-in error:', error);
+                button.disabled = true;
             }
-        }
+        });
 
-        // 網頁載入後執行
-        window.onload = loadStudents;
+
+    } catch (error) {
+        container.innerHTML = `<p style="color:red;">載入名單失敗：請檢查 ID 或連線 (錯誤: ${error.message})</p>`;
+        console.error('Fetch error:', error);
+    }
+}
+
+// 2. 處理點名 (POST 請求)
+async function checkIn(button, studentId, studentName, ssId) { 
+    if (button.classList.contains('checked')) {
+        return;
+    }
+
+    const originalText = button.textContent;
+    button.textContent = '點名中...';
+    button.disabled = true;
+
+    try {
+        const url = getApiUrl(ssId); 
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            mode: 'no-cors', 
+            body: JSON.stringify({ 
+                id: studentId, 
+                name: studentName
+            }) 
+        });
+
+        // 成功邏輯
+        button.textContent = `${studentName} (已點名)`;
+        button.classList.add('checked');
+        // 🚨 修正：Session Storage 鍵名應包含 ssId，確保不同課程的點名狀態獨立
+        sessionStorage.setItem(`checked_${ssId}_${studentId}`, 'true'); 
+
+    } catch (error) {
+        // 失敗邏輯
+        alert('點名失敗，請檢查網路或通知老師。');
+        button.textContent = originalText;
+        button.disabled = false;
+        console.error('Check-in error:', error);
+    }
+}
+
+// 網頁載入時自動填充選單
+window.onload = populateClassSelector;
     </script>
 
 </body>
