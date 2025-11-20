@@ -104,7 +104,7 @@
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
                     mode: 'no-cors', // 必須使用 no-cors 來與 Apps Script 互動
-                    body: JSON.stringify({ id: studentId }) 
+                    body: JSON.stringify({ id: studentId, name:studentName }) 
                 });
 
                 // 因為是 no-cors，我們無法直接讀取回應內容，但通常請求發出即視為成功
