@@ -2,18 +2,49 @@
 <html lang="zh-TW">
 <body>
 
-    <h1>課堂點名系統</h1>
+    <head>
+    <title>課堂點名系統</title>
     
-    <div style="margin-bottom: 20px;">
-    <label for="classSelector">選擇要點名的課程：</label>
-    <select id="classSelector">
-        </select>
-    <button onclick="loadStudents()">載入名單</button>
-    </div>
-    
-    <div id="students-container">
-        請選擇課程後點擊載入。
-    </div>
+    <style>
+        /* 第一版簡潔的 CSS 樣式 */
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            margin-top: 50px; 
+        }
+        
+        #students-container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 15px; /* 按鈕間距 */
+        }
+        
+        .student-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f0f0; /* 淺灰色背景 */
+            transition: background-color 0.3s;
+            min-width: 100px; /* 確保按鈕大小一致 */
+        }
+        
+        /* 滑鼠懸停效果 (未點名狀態) */
+        .student-button:hover:not(.checked) { 
+            background-color: #e0e0e0; 
+        }
+        
+        /* 已點名狀態的樣式 */
+        .checked {
+            background-color: #4CAF50 !important; /* 綠色 */
+            color: white;
+            cursor: not-allowed; /* 禁止點擊圖標 */
+            border-color: #4CAF50;
+        }
+    </style>
+    </head>
 
     <script>
     // 🚨 替換成您自己的 Apps Script 部署 URL 🚨
