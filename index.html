@@ -172,7 +172,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: "123", name: "喔喔喔" })
-            });
+            }).then(res => res.json()).then(console.log).catch(console.error);
 
             const result = await response.json();
 
