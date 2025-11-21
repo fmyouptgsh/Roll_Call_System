@@ -1,38 +1,32 @@
-async function checkIn(button, studentId, studentName, ssId) { 
-    if (button.classList.contains('checked')) {
-        return;
-    }
+<!DOCTYPE html>
+<html lang="zh-TW">
 
-    const originalText = button.textContent;
-    button.textContent = '點名中...';
-    button.disabled = true;
-
-    try {
-        const url = getApiUrl(ssId); 
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }, // ← 必須加
-            body: JSON.stringify({ 
-                id: studentId, 
-                name: studentName
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.status !== "success") {
-            throw new Error(result.message);
+<head>
+    <meta charset="UTF-8">
+    <title>課堂點名系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
         }
 
-        button.textContent = `${studentName} (已點名)`;
-        button.classList.add('checked');
-        sessionStorage.setItem(`checked_${ssId}_${studentId}`, 'true'); 
+        #students-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
 
-    } catch (error) {
-        alert('點名失敗：' + error.message);
-        button.textContent = originalText;
-        button.disabled = false;
-        console.error('Check-in error:', error);
-    }
-}
+        .student-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            transition: background-color 0.3s;
+            min-width: 100px;
+        }
+
+        .student-button:hover:not(.checked) {
