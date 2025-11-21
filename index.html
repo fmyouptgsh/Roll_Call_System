@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8" />
 <title>課堂點名系統</title>
@@ -99,100 +101,100 @@
 </style>
 </head>
 
+
 <body>
 
-<h1>課堂點名系統</h1>
-
-<div id="controls">
+    <!-- 下拉選單 -->
     <select id="classSelector"></select>
-    <button class="load-btn" onclick="loadStudents()">載入名單</button>
-</div>
+    <button onclick="loadStudents()">載入名單</button>
 
-<div id="students-container"></div>
+    <div id="students-container"></div>
 
-<script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby9ledoJh35JikP7EfxMoO0cub-Kal4rILUleaBExQIQ2rJdvBR0eSBnwocHdz-ux65ZQ/exec";
+    <script>
+        // 🚨 替換成您自己的 Apps Script 部署 URL 🚨
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9ledoJh35JikP7EfxMoO0cub-Kal4rILUleaBExQIQ2rJdvBR0eSBnwocHdz-ux65ZQ/exec';
 
-    const CLASS_OPTIONS = [
-        { name: "--- 請選擇課程 ---", id: "" },
-        { name: "114-1 進階程式設計-高二社會組", id: "1GcGA5J2yKtjlWofH543McS6zUpnzHiTN2myDTRwCdmc" },
-        { name: "114-1 進階程式設計-210", id: "11Cg36AQT2CnhRI1NTu5Zv__bJm7mI9FMNn0UiYWj7xg" }
-    ];
+        const CLASS_OPTIONS = [
+            { name: "--- 請選擇課程 ---", id: "" },
+            { name: "114-1 進階程式設計-高二社會組", id: "1GcGA5J2yKtjlWofH543McS6zUpnzHiTN2myDTRwCdmc" },
+            { name: "114-1 進階程式設計-210", id: "11Cg36AQT2CnhRI1NTu5Zv__bJm7mI9FMNn0UiYWj7xg" }
+        ];
 
-    function getApiUrl(ssid) {
-        return `${WEB_APP_URL}?ssid=${ssid}`;
-    }
-
-    function populateClassSelector() {
-        const selector = document.getElementById("classSelector");
-        CLASS_OPTIONS.forEach(cls => {
-            const opt = document.createElement("option");
-            opt.value = cls.id;
-            opt.textContent = cls.name;
-            selector.appendChild(opt);
-        });
-    }
-
-    async function loadStudents() {
-        const ssId = document.getElementById("classSelector").value;
-        const container = document.getElementById("students-container");
-
-        if (!ssId) {
-            alert("請先選擇課程！");
-            return;
+        function getApiUrl(ssid) {
+            return `${WEB_APP_URL}?ssid=${ssid}`;
         }
 
-        container.innerHTML = "<p>讀取中...</p>";
-
-        const response = await fetch(getApiUrl(ssId));
-        const students = await response.json();
-
-        container.innerHTML = "";
-
-        students.forEach(stu => {
-            const btn = document.createElement("button");
-            btn.className = "student-button";
-            btn.textContent = stu.name;
-
-            btn.onclick = () => checkIn(btn, stu.id, stu.name, ssId);
-
-            container.appendChild(btn);
-        });
-    }
-
-    async function checkIn(button, studentId, studentName, ssId) {
-        if (button.classList.contains("checked")) return;
-
-        const original = button.textContent;
-        button.textContent = "點名中...";
-        button.disabled = true;
-
-        try {
-            const response = await fetch(getApiUrl(ssId), {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: studentId, name: studentName })
+        function populateClassSelector() {
+            const selector = document.getElementById('classSelector');
+            CLASS_OPTIONS.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.name;
+                selector.appendChild(option);
             });
+        }
 
-            const result = await response.json();
+        async function loadStudents() {
+            const selector = document.getElementById('classSelector');
+            const ssId = selector.value;
+            const container = document.getElementById('students-container');
 
-            if (result.status !== "success") {
-                throw new Error(result.message);
+            if (!ssId) {
+                alert('請先選擇課程！');
+                container.innerHTML = '請選擇課程後點擊載入。';
+                return;
             }
 
-            // 點名成功 → 視覺效果
-            button.textContent = studentName;
-            button.classList.add("checked");
+            container.innerHTML = '<p>讀取中...</p>';
 
-        } catch (err) {
-            alert("點名失敗：" + err.message);
-            button.textContent = original;
-            button.disabled = false;
+            const response = await fetch(getApiUrl(ssId));
+            const students = await response.json();
+
+            container.innerHTML = '';
+
+            students.forEach(student => {
+                const btn = document.createElement('button');
+                btn.className = 'student-button';
+                btn.textContent = student.name;
+                btn.onclick = () => checkIn(btn, student.id, student.name, ssId);
+
+                container.appendChild(btn);
+            });
         }
-    }
 
-    window.onload = populateClassSelector;
-</script>
+        async function checkIn(button, studentId, studentName, ssId) {
+            if (button.classList.contains('checked')) return;
+
+            const original = button.textContent;
+            button.textContent = "點名中...";
+            button.disabled = true;
+
+            try {
+                const response = await fetch(getApiUrl(ssId), {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: studentId, name: studentName })
+                });
+
+                const result = await response.json();
+
+                if (result.status !== "success") {
+                    throw new Error(result.message);
+                }
+
+                button.textContent = `${studentName} (已點名)`;
+                button.classList.add('checked');
+
+            } catch (err) {
+                alert("點名失敗：" + err.message);
+                button.textContent = original;
+                button.disabled = false;
+            }
+        }
+
+        window.onload = populateClassSelector;
+    </script>
 
 </body>
+
 </html>
