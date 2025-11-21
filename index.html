@@ -1,141 +1,198 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
-    <meta charset="UTF-8">
-    <title>課堂點名系統</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-        }
+<meta charset="UTF-8" />
+<title>課堂點名系統</title>
 
-        #students-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-        }
+<style>
+    body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background-color: #f3f2ee;
+        margin: 0;
+        padding: 30px;
+        text-align: center;
+        color: #555;
+    }
 
-        .student-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f0f0f0;
-            transition: background-color 0.3s;
-            min-width: 100px;
-        }
+    h1 {
+        margin-bottom: 20px;
+        font-size: 28px;
+        color: #6d6b67;
+    }
 
-        .student-button:hover:not(.checked) {
-            background-color: #e0e0e0;
-        }
+    /* 下拉式選單區 */
+    #controls {
+        margin-bottom: 25px;
+    }
 
-        .checked {
-            background-color: #4CAF50 !important;
-            color: white;
-            cursor: not-allowed;
-            border-color: #4CAF50;
-        }
-    </style>
+    select, button.load-btn {
+        padding: 12px 16px;
+        font-size: 16px;
+        border-radius: 12px;
+        border: 1px solid #c8c6c3;
+        background-color: #e7e5e1;
+        color: #555;
+        margin-right: 10px;
+        cursor: pointer;
+        transition: 0.25s;
+    }
+
+    button.load-btn:hover {
+        background-color: #d8d6d2;
+    }
+
+    /* 學生按鈕容器 */
+    #students-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    /* 按鈕 - 北歐莫蘭迪配色 */
+    .student-button {
+        padding: 18px 22px;
+        min-width: 140px;
+        border-radius: 18px;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        background-color: #d9d7d2;
+        color: #4f4e4c;
+        transition: 0.25s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .student-button:hover:not(.checked) {
+        background-color: #cccac6;
+        transform: translateY(-2px);
+    }
+
+    /* 點名後 */
+    .checked {
+        background-color: #8bbd8b !important; /* 莫蘭迪綠 */
+        color: white !important;
+        cursor: not-allowed !important;
+        transform: scale(1.0);
+        border: none;
+        position: relative;
+    }
+
+    /* 點名動畫 - 小跳動 + ✓ 出現 */
+    .checked::after {
+        content: "✓";
+        font-size: 22px;
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%) scale(0);
+        animation: pop 0.4s forwards;
+    }
+
+    @keyframes pop {
+        0% { transform: translateY(-50%) scale(0); }
+        60% { transform: translateY(-50%) scale(1.3); }
+        100% { transform: translateY(-50%) scale(1); }
+    }
+</style>
 </head>
 
-    
 <body>
 
-    <!-- 下拉選單 -->
+<h1>課堂點名系統</h1>
+
+<div id="controls">
     <select id="classSelector"></select>
-    <button onclick="loadStudents()">載入名單</button>
+    <button class="load-btn" onclick="loadStudents()">載入名單</button>
+</div>
 
-    <div id="students-container"></div>
+<div id="students-container"></div>
 
-    <script>
-        // 🚨 替換成您自己的 Apps Script 部署 URL 🚨
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby9ledoJh35JikP7EfxMoO0cub-Kal4rILUleaBExQIQ2rJdvBR0eSBnwocHdz-ux65ZQ/exec';
+<script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby9ledoJh35JikP7EfxMoO0cub-Kal4rILUleaBExQIQ2rJdvBR0eSBnwocHdz-ux65ZQ/exec";
 
-        const CLASS_OPTIONS = [
-            { name: "--- 請選擇課程 ---", id: "" },
-            { name: "114-1 進階程式設計-高二社會組", id: "1GcGA5J2yKtjlWofH543McS6zUpnzHiTN2myDTRwCdmc" },
-            { name: "114-1 進階程式設計-210", id: "11Cg36AQT2CnhRI1NTu5Zv__bJm7mI9FMNn0UiYWj7xg" }
-        ];
+    const CLASS_OPTIONS = [
+        { name: "--- 請選擇課程 ---", id: "" },
+        { name: "114-1 進階程式設計-高二社會組", id: "1GcGA5J2yKtjlWofH543McS6zUpnzHiTN2myDTRwCdmc" },
+        { name: "114-1 進階程式設計-210", id: "11Cg36AQT2CnhRI1NTu5Zv__bJm7mI9FMNn0UiYWj7xg" }
+    ];
 
-        function getApiUrl(ssid) {
-            return `${WEB_APP_URL}?ssid=${ssid}`;
+    function getApiUrl(ssid) {
+        return `${WEB_APP_URL}?ssid=${ssid}`;
+    }
+
+    function populateClassSelector() {
+        const selector = document.getElementById("classSelector");
+        CLASS_OPTIONS.forEach(cls => {
+            const opt = document.createElement("option");
+            opt.value = cls.id;
+            opt.textContent = cls.name;
+            selector.appendChild(opt);
+        });
+    }
+
+    async function loadStudents() {
+        const ssId = document.getElementById("classSelector").value;
+        const container = document.getElementById("students-container");
+
+        if (!ssId) {
+            alert("請先選擇課程！");
+            return;
         }
 
-        function populateClassSelector() {
-            const selector = document.getElementById('classSelector');
-            CLASS_OPTIONS.forEach(c => {
-                const option = document.createElement('option');
-                option.value = c.id;
-                option.textContent = c.name;
-                selector.appendChild(option);
+        container.innerHTML = "<p>讀取中...</p>";
+
+        const response = await fetch(getApiUrl(ssId));
+        const students = await response.json();
+
+        container.innerHTML = "";
+
+        students.forEach(stu => {
+            const btn = document.createElement("button");
+            btn.className = "student-button";
+            btn.textContent = stu.name;
+
+            btn.onclick = () => checkIn(btn, stu.id, stu.name, ssId);
+
+            container.appendChild(btn);
+        });
+    }
+
+    async function checkIn(button, studentId, studentName, ssId) {
+        if (button.classList.contains("checked")) return;
+
+        const original = button.textContent;
+        button.textContent = "點名中...";
+        button.disabled = true;
+
+        try {
+            const response = await fetch(getApiUrl(ssId), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: "123", name: "喔喔喔" })
             });
-        }
 
-        async function loadStudents() {
-            const selector = document.getElementById('classSelector');
-            const ssId = selector.value;
-            const container = document.getElementById('students-container');
+            const result = await response.json();
 
-            if (!ssId) {
-                alert('請先選擇課程！');
-                container.innerHTML = '請選擇課程後點擊載入。';
-                return;
+            if (result.status !== "success") {
+                throw new Error(result.message);
             }
 
-            container.innerHTML = '<p>讀取中...</p>';
+            // 點名成功 → 視覺效果
+            button.textContent = studentName;
+            button.classList.add("checked");
 
-            const response = await fetch(getApiUrl(ssId));
-            const students = await response.json();
-
-            container.innerHTML = '';
-
-            students.forEach(student => {
-                const btn = document.createElement('button');
-                btn.className = 'student-button';
-                btn.textContent = student.name;
-                btn.onclick = () => checkIn(btn, student.id, student.name, ssId);
-
-                container.appendChild(btn);
-            });
+        } catch (err) {
+            alert("點名失敗：" + err.message);
+            button.textContent = original;
+            button.disabled = false;
         }
+    }
 
-        async function checkIn(button, studentId, studentName, ssId) {
-            if (button.classList.contains('checked')) return;
-
-            const original = button.textContent;
-            button.textContent = "點名中...";
-            button.disabled = true;
-
-            try {
-                const response = await fetch(getApiUrl(ssId), {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: studentId, name: studentName })
-                });
-
-                const result = await response.json();
-
-                if (result.status !== "success") {
-                    throw new Error(result.message);
-                }
-
-                button.textContent = `${studentName} (已點名)`;
-                button.classList.add('checked');
-
-            } catch (err) {
-                alert("點名失敗：" + err.message);
-                button.textContent = original;
-                button.disabled = false;
-            }
-        }
-
-        window.onload = populateClassSelector;
-    </script>
+    window.onload = populateClassSelector;
+</script>
 
 </body>
-
 </html>
