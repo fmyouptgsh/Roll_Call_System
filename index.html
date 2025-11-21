@@ -1,168 +1,38 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<body>
-
-    <head>
-    <title>課堂點名系統</title>
-    
-    <style>
-        /* 第一版簡潔的 CSS 樣式 */
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            margin-top: 50px; 
-        }
-        
-        #students-container { 
-            display: flex; 
-            flex-wrap: wrap; 
-            justify-content: center; 
-            gap: 15px; /* 按鈕間距 */
-        }
-        
-        .student-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #f0f0f0; /* 淺灰色背景 */
-            transition: background-color 0.3s;
-            min-width: 100px; /* 確保按鈕大小一致 */
-        }
-        
-        /* 滑鼠懸停效果 (未點名狀態) */
-        .student-button:hover:not(.checked) { 
-            background-color: #e0e0e0; 
-        }
-        
-        /* 已點名狀態的樣式 */
-        .checked {
-            background-color: #4CAF50 !important; /* 綠色 */
-            color: white;
-            cursor: not-allowed; /* 禁止點擊圖標 */
-            border-color: #4CAF50;
-        }
-    </style>
-    </head>
-
-    <script>
-    // 🚨 替換成您自己的 Apps Script 部署 URL 🚨
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxQMrlJVrD8j2YAQwvNdZeQ9HcDu0Lbmrq9oM-On5sHZsEvEPhkX6LGcYf7QHgEsML5iw/exec';
-    
-    // 🚨 課程清單：將您的課程名稱與對應的試算表 ID 放在這裡 🚨
-    const CLASS_OPTIONS = [
-        { name: "--- 請選擇課程 ---", id: "" }, // 預設空值選項
-        { name: "114-1 進階程式設計-高二社會組", id: "1GcGA5J2yKtjlWofH543McS6zUpnzHiTN2myDTRwCdmc" },
-        { name: "114-1 進階程式設計-210", id: "11Cg36AQT2CnhRI1NTu5Zv__bJm7mI9FMNn0UiYWj7xg" }
-    ];
-    
-    // 輔助函數：取得帶有 SSID 參數的完整 URL
-    function getApiUrl(ssid) {
-        return `${WEB_APP_URL}?ssid=${ssid}`;
+async function checkIn(button, studentId, studentName, ssId) { 
+    if (button.classList.contains('checked')) {
+        return;
     }
-    
-    // 函數：填充下拉式選單
-    function populateClassSelector() {
-        const selector = document.getElementById('classSelector');
-        CLASS_OPTIONS.forEach(classItem => {
-            const option = document.createElement('option');
-            option.value = classItem.id;
-            option.textContent = classItem.name;
-            selector.appendChild(option);
+
+    const originalText = button.textContent;
+    button.textContent = '點名中...';
+    button.disabled = true;
+
+    try {
+        const url = getApiUrl(ssId); 
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }, // ← 必須加
+            body: JSON.stringify({ 
+                id: studentId, 
+                name: studentName
+            })
         });
-    }
-    
-    // 1. 載入名單
-    async function loadStudents() {
-        // 從下拉式選單中取得選擇的試算表 ID
-        const selector = document.getElementById('classSelector');
-        const ssId = selector.value;
-        const container = document.getElementById('students-container');
-        
-        if (!ssId) {
-            alert('請先選擇一個課程！');
-            container.innerHTML = '請選擇課程後點擊載入。';
-            return;
-        }
-    
-        container.innerHTML = '<p>讀取 Google 試算表名單中...</p>';
-        
-        try {
-            const url = getApiUrl(ssId);
-            const response = await fetch(url);
-            const students = await response.json();
-    
-            if (students.status === 'error') {
-                 container.innerHTML = `<p style="color:red;">載入名單失敗：${students.message}</p>`;
-                 return;
-            }
-            
-            container.innerHTML = '';
-            students.forEach(student => {
-                const button = document.createElement('button');
-                button.className = 'student-button';
-                button.textContent = student.name;
-                button.dataset.id = student.id; 
-                // 傳遞 ssId 給 checkIn 函數
-                button.onclick = () => checkIn(button, student.id, student.name, ssId);
-                container.appendChild(button);
-                
-                // 檢查是否已點名
-                if (sessionStorage.getItem(`checked_${ssId}_${student.id}`) === 'true') {
-                    button.textContent = `${student.name} (已點名)`;
-                    button.classList.add('checked');
-                    button.disabled = true;
-                }
-            });
-    
-    
-        } catch (error) {
-            container.innerHTML = `<p style="color:red;">載入名單失敗：請檢查 ID 或連線 (錯誤: ${error.message})</p>`;
-            console.error('Fetch error:', error);
-        }
-    }
-    
-    // 2. 處理點名 (POST 請求)
-    async function checkIn(button, studentId, studentName, ssId) { 
-        if (button.classList.contains('checked')) {
-            return;
-        }
-    
-        const originalText = button.textContent;
-        button.textContent = '點名中...';
-        button.disabled = true;
-    
-        try {
-            const url = getApiUrl(ssId); 
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                mode: 'no-cors', 
-                body: JSON.stringify({ 
-                    id: studentId, 
-                    name: studentName
-                }) 
-            });
-    
-            // 成功邏輯
-            button.textContent = `${studentName} (已點名)`;
-            button.classList.add('checked');
-            // 🚨 修正：Session Storage 鍵名應包含 ssId，確保不同課程的點名狀態獨立
-            sessionStorage.setItem(`checked_${ssId}_${studentId}`, 'true'); 
-    
-        } catch (error) {
-            // 失敗邏輯
-            alert('點名失敗，請檢查網路或通知老師。');
-            button.textContent = originalText;
-            button.disabled = false;
-            console.error('Check-in error:', error);
-        }
-    }
-    
-    // 網頁載入時自動填充選單
-    window.onload = populateClassSelector;
-    </script>
 
-</body>
-</html>
+        const result = await response.json();
+
+        if (result.status !== "success") {
+            throw new Error(result.message);
+        }
+
+        button.textContent = `${studentName} (已點名)`;
+        button.classList.add('checked');
+        sessionStorage.setItem(`checked_${ssId}_${studentId}`, 'true'); 
+
+    } catch (error) {
+        alert('點名失敗：' + error.message);
+        button.textContent = originalText;
+        button.disabled = false;
+        console.error('Check-in error:', error);
+    }
+}
